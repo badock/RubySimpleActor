@@ -3,7 +3,7 @@ require 'thread'
 
 class RubySimpleActor
 
-  @@MAX_MESSAGE_PER_LOOP = 10
+  @@MAX_MESSAGE_PER_LOOP = 0
 
   def on_receive(msg); raise "Method on_receive(msg) is not implemented"; end
 
@@ -16,7 +16,7 @@ class RubySimpleActor
 
       if(count > @@MAX_MESSAGE_PER_LOOP)
         count = 0
-        sleep(0.05)
+        Thread.pass
       end
 
       value = MSG_QUEUE.pop
@@ -40,9 +40,17 @@ class RubySimpleActor
 
 
   def send msg
-    MSG_QUEUE.push(msg)
-    if(@MSG_LISTENER.stop?)
-      @MSG_LISTENER.run
+    Thread.new do
+      MSG_QUEUE.push(msg)
+      if(@MSG_LISTENER.stop?)
+        begin
+          @MSG_LISTENER.run
+        rescue => exception
+          puts @MSG_LISTENER.status
+          puts @MSG_QUEUE.status
+          puts exception.backtrace
+        end
+      end
     end
   end
 
